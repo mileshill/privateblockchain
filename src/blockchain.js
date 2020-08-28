@@ -64,7 +64,13 @@ class Blockchain {
     _addBlock(block) {
         let self = this;
         return new Promise(async (resolve, reject) => {
-           
+            // Assign previous block hash
+            // Assign height
+            // Assign current timestamp
+            block.previousBlockHash = self.chain[self.chain.length - 1].hash
+            block.height = self.chain[self.chain.length - 1].height + 1
+            block.timestamp = new Date().getTime().toString().slice(0, -3)
+            resolve()
         });
     }
 
@@ -77,8 +83,9 @@ class Blockchain {
      * @param {*} address 
      */
     requestMessageOwnershipVerification(address) {
-        return new Promise((resolve) => {
-            
+        return new Promise((resolve, reject) => {
+            resolve(`${address}:${new Date().getTime().toString().slice(0, -3)}:starRegistry`)
+            reject()
         });
     }
 
