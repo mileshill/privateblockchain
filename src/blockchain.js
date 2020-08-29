@@ -8,7 +8,6 @@
  *
  */
 
-import {Block} from "./block";
 
 const SHA256 = require('crypto-js/sha256');
 const BlockClass = require('./block.js');
@@ -69,10 +68,16 @@ class Blockchain {
             // Assign previous block hash
             // Assign height
             // Assign current timestamp
-            block.previousBlockHash = self.chain[self.chain.length - 1].hash
-            block.height = self.chain[self.chain.length - 1].height + 1
-            block.timestamp = new Date().getTime().toString().slice(0, -3)
-            resolve()
+            if (self.chain.length > 0){
+                // Account for the Genesis block
+                block.previousBlockHash = self.chain[self.chain.length - 1].hash
+                block.height = self.chain[self.chain.length - 1].height + 1
+            }
+            block.hash = SHA256(JSON.stringify(block)).toString()
+            block.time = new Date().getTime().toString().slice(0, -3)
+            this.chain.push(block)
+            this.height += 1
+            resolve(block)
         });
     }
 
@@ -125,7 +130,13 @@ class Blockchain {
                 reject('ERR: Unable to verify (message, address, signature)')
             }
             // Block is valid. Add to chain
-            resolve(await self._addBlock(new Block(message)))
+            const data = {
+                address: address,
+                signature: signature,
+                message: message,
+                star: star
+            }
+            resolve(await self._addBlock(new BlockClass.Block({data: data})))
         });
     }
 
@@ -157,6 +168,7 @@ class Blockchain {
             } else {
                 resolve(null);
             }
+            reject(`ERR: Block with height = ${height} not found`)
         });
     }
 
@@ -167,11 +179,15 @@ class Blockchain {
      * @param {*} address 
      */
     getStarsByWalletAddress (address) {
-        let self = this;
-        let stars = [];
-        return new Promise((resolve, reject) => {
-            
-        });
+        // Must search the chain and the body!
+        // Body are hex encoded. So, decrypt those tasty nuggets
+        return Promise.all(this.chain.map(block => block.getBData())).then(
+            // Filter for address type
+            // Mapping to return to user
+            blockData => blockData
+                    .filter(body => body && body.data.address === address)
+                    .map(body => ({star: body.data.star, owner: body.data.address}))
+        )
     }
 
     /**
@@ -184,7 +200,25 @@ class Blockchain {
         let self = this;
         let errorLog = [];
         return new Promise(async (resolve, reject) => {
-            
+            // Validate the genesis block
+            if(!this.chain[0].validate()){
+                reject(`ERR: Could not validate genesis block`)
+            }
+
+           // Validate the blocks and hash chain
+            for (let i = 1; i < this.chain.length - 1; i++){
+                let prevBlock = this.chain[i - 1]
+                let currBlock = this.chain[i]
+                // Validate current block
+                if(!currBlock.validate()){
+                    reject(`ERR: Validation failed for block ${currBlock.height}`)
+                }
+                // Validate hash relationship
+                if(!currBlock.previousBlockHash === prevBlock.hash){
+                    reject(`ERR: Hash chain corrupted between blocks: ${currBlock.height} and ${prevBlock.height}`)
+                }
+            }
+            resolve()
         });
     }
 
