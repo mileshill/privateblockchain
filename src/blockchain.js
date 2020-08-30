@@ -65,20 +65,24 @@ class Blockchain {
     _addBlock(block) {
         let self = this;
         return new Promise(async (resolve, reject) => {
-            // Assign previous block hash
-            // Assign height
-            // Assign current timestamp
-            if (self.chain.length > 0){
-                // Account for the Genesis block
-                block.previousBlockHash = self.chain[self.chain.length - 1].hash
-                block.height = self.chain[self.chain.length - 1].height + 1
+            try{
+                // Assign previous block hash
+                // Assign height
+                // Assign current timestamp
+                if (self.chain.length > 0){
+                    // Account for the Genesis block
+                    block.previousBlockHash = self.chain[self.chain.length - 1].hash
+                    block.height = self.chain[self.chain.length - 1].height + 1
+                }
+                block.hash = SHA256(JSON.stringify(block)).toString()
+                block.time = new Date().getTime().toString().slice(0, -3)
+                this.chain.push(block)
+                this.height += 1
+                resolve(block);
+            }catch (e) {
+               reject(e)
             }
-            block.hash = SHA256(JSON.stringify(block)).toString()
-            block.time = new Date().getTime().toString().slice(0, -3)
-            this.chain.push(block)
-            this.height += 1
-            resolve(block)
-        });
+        })
     }
 
     /**
@@ -91,8 +95,11 @@ class Blockchain {
      */
     requestMessageOwnershipVerification(address) {
         return new Promise((resolve, reject) => {
-            resolve(`${address}:${new Date().getTime().toString().slice(0, -3)}:starRegistry`)
-            reject()
+            try{
+                resolve(`${address}:${new Date().getTime().toString().slice(0, -3)}:starRegistry`)
+            }catch (e) {
+               reject(e)
+            }
         });
     }
 
@@ -118,25 +125,31 @@ class Blockchain {
         return new Promise(async (resolve, reject) => {
             // Get time from message. Message has format `address:utctime:starRegistery`
             // Get current time
-            let messageRequestTime = parseInt(message.split(':')[1])
-            let currentTime = parseInt(new Date().getTime().toString().slice(0, 3))
+            try{
+                let messageRequestTime = parseInt(message.split(':')[1])
+                let currentTime = parseInt(new Date().getTime().toString().slice(0, 3))
 
-            // Elapsed time must be less than or equal to 5 minutes
-            if((currentTime - messageRequestTime) > (60 * 5)){
-                reject(`ERR: Elapsed time exceeds 300 seconds: ${currentTime - messageRequestTime} seconds`)
+                // Elapsed time must be less than or equal to 5 minutes
+                if((currentTime - messageRequestTime) > (60 * 5)){
+                    reject(`ERR: Elapsed time exceeds 300 seconds: ${currentTime - messageRequestTime} seconds`)
+                }
+                // Verify
+                if(!bitcoinMessage.verify(message, address, signature)){
+                    reject('ERR: Unable to verify (message, address, signature)')
+                }
+                // Block is valid. Add to chain
+                const data = {
+                    address: address,
+                    signature: signature,
+                    message: message,
+                    star: star
+                }
+                // Resovles with `block`
+                resolve(await self._addBlock(new BlockClass.Block({data: data})))
+            }catch (e) {
+                
             }
-            // Verify
-            if(!bitcoinMessage.verify(message, address, signature)){
-                reject('ERR: Unable to verify (message, address, signature)')
-            }
-            // Block is valid. Add to chain
-            const data = {
-                address: address,
-                signature: signature,
-                message: message,
-                star: star
-            }
-            resolve(await self._addBlock(new BlockClass.Block({data: data})))
+
         });
     }
 
@@ -200,26 +213,35 @@ class Blockchain {
         let self = this;
         let errorLog = [];
         return new Promise(async (resolve, reject) => {
-            // Validate the genesis block
-            if(!this.chain[0].validate()){
-                reject(`ERR: Could not validate genesis block`)
+            try{
+                // Validate the blocks and hash chain
+                for (let i = 1; i < this.chain.length - 1; i++){
+                    let prevBlock = this.chain[i - 1]
+                    let currBlock = this.chain[i]
+                    // Validate current block
+                    await currBlock.validate().then( isvalid => {
+                        if (!isvalid){
+                            errorLog.push({
+                                block: currBlock,
+                                error: 'Validation failure'
+                            })
+                        }
+                    })
+                    // Validate hash relationship
+                    if(!currBlock.previousBlockHash === prevBlock.hash){
+                        errorLog.push({
+                            prevBlock: prevBlock,
+                            currBlock: currBlock,
+                            error: 'Invalid hash relationship'
+                        })
+                    }
+                }
+                resolve(errorLog)
+            } catch (e) {
+                reject(e)
             }
 
-           // Validate the blocks and hash chain
-            for (let i = 1; i < this.chain.length - 1; i++){
-                let prevBlock = this.chain[i - 1]
-                let currBlock = this.chain[i]
-                // Validate current block
-                if(!currBlock.validate()){
-                    reject(`ERR: Validation failed for block ${currBlock.height}`)
-                }
-                // Validate hash relationship
-                if(!currBlock.previousBlockHash === prevBlock.hash){
-                    reject(`ERR: Hash chain corrupted between blocks: ${currBlock.height} and ${prevBlock.height}`)
-                }
-            }
-            resolve()
-        });
+            });
     }
 
 }
