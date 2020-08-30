@@ -74,8 +74,9 @@ class Blockchain {
                     block.previousBlockHash = self.chain[self.chain.length - 1].hash
                     block.height = self.chain[self.chain.length - 1].height + 1
                 }
-                block.hash = SHA256(JSON.stringify(block)).toString()
                 block.time = new Date().getTime().toString().slice(0, -3)
+                // Hash goes last! Otherwise it will never validate
+                block.hash = SHA256(JSON.stringify(block)).toString()
                 this.chain.push(block)
                 this.height += 1
                 resolve(block);
@@ -213,37 +214,31 @@ class Blockchain {
         let self = this;
         let errorLog = [];
         return new Promise(async (resolve, reject) => {
-            try{
-                // Validate the blocks and hash chain
-                for (let i = 1; i < this.chain.length - 1; i++){
-                    let prevBlock = this.chain[i - 1]
-                    let currBlock = this.chain[i]
-                    // Validate current block
-                    await currBlock.validate().then( isvalid => {
-                        if (!isvalid){
-                            errorLog.push({
-                                block: currBlock,
-                                error: 'Validation failure'
-                            })
-                        }
-                    })
-                    // Validate hash relationship
-                    if(!currBlock.previousBlockHash === prevBlock.hash){
+            for (const block of this.chain) {
+                let height = this.chain.indexOf(block);
+                // Validate each block hash
+                await block.validate().then(isValid => {
+                    if (!isValid) {
                         errorLog.push({
-                            prevBlock: prevBlock,
-                            currBlock: currBlock,
+                            block: block,
+                            error: 'Validation failure'
+                        })
+                    }
+                })
+                if (height > 0) {
+                    // Validate hash link between blocks
+                    if (!block.previousBlockHash === this.chain[height - 1].hash) {
+                        errorLog.push({
+                            prevBlock: this.chain[height - 1],
+                            currBlock: block,
                             error: 'Invalid hash relationship'
                         })
                     }
                 }
-                resolve(errorLog)
-            } catch (e) {
-                reject(e)
             }
-
-            });
+            resolve(errorLog)
+        })
     }
-
 }
 
 module.exports.Blockchain = Blockchain;   

@@ -43,10 +43,15 @@ class Block {
             // Comparing if the hashes changed
             // Returning the Block is not valid
             try{
-                let currentHash = this.hash
-                let calculatedBlockHash = SHA256(JSON.stringify(this)).toString()
+                let currentHash = self.hash
+                self.hash = null
+                let calculatedBlockHash = SHA256(JSON.stringify(self)).toString()
+                self.hash = currentHash
+                if(calculatedBlockHash === currentHash){
+                    resolve(true)
+                }
+                reject(false)
                 // Returning the Block is valid
-                resolve(currentHash === calculatedBlockHash)
             }catch (e) {
                reject(e)
             }
@@ -70,7 +75,7 @@ class Block {
             // Parse the data to an object to be retrieve.
             // Resolve with the data if the object isn't the Genesis block
             try{
-                const data = this.height > 0 ? JSON.parse(hex2ascii(this.body)) : null;
+                const data = self.height > 0 ? JSON.parse(hex2ascii(self.body)) : null;
                 resolve(data)
             } catch (e){
                 reject(e)
