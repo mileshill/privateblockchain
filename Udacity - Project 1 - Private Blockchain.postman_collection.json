@@ -1,0 +1,108 @@
+{
+	"info": {
+		"_postman_id": "180f6189-90f6-4976-9749-86e73041ba1f",
+		"name": "Udacity - Project 1 - Private Blockchain",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "GET - Genesis block",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "localhost:8000/block/0",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"block",
+						"0"
+					]
+				},
+				"description": "Use a GET to request the Genesis block"
+			},
+			"response": []
+		},
+		{
+			"name": "Request Validation",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"address\": \"1HZwkjkeaoZfTSaJxDw6aKkxp45agDiEzN\"\n}"
+				},
+				"url": {
+					"raw": "localhost:8000/requestValidation",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"requestValidation"
+					]
+				},
+				"description": "POST a wallet address and receive a message that requires a signature. Returned value has the form:\n    ${address}:utcTimeInSeconds:starRegistry"
+			},
+			"response": []
+		},
+		{
+			"name": "Submit Star",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"address\": \"1HZwkjkeaoZfTSaJxDw6aKkxp45agDiEzN\",\n    \"signature\":\"HM0cVtPPD7IIMhl3/Yy35xiLlJwFztPAgkdFn5H0G7Zqxc7njHzf/9LGj2ApBnJXP36Yel5TNzMhGGtEYR0Zw2k=\",\n    \"message\":\"1HZwkjkeaoZfTSaJxDw6aKkxp45agDiEzN:1598629098:starRegistry\",\n    \"star\": {\n        \"dec\":\"68 52' 56.9\",\n        \"ra\": \"16h 29m 3.0s\",\n        \"story\": \"This is an awesome star 3\"\n    }\n}"
+				},
+				"url": {
+					"raw": "localhost:8000/submitstar",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"submitstar"
+					]
+				},
+				"description": "Submit star to transaction to the blockchain.\nRequires:\n - address\n - signature\n - message\n - star\n   - dec\n   - ra\n   - story"
+			},
+			"response": []
+		},
+		{
+			"name": "GET List of Stars by Owner",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "localhost:8000/blocks/1HZwkjkeaoZfTSaJxDw6aKkxp45agDiEzN",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"blocks",
+						"1HZwkjkeaoZfTSaJxDw6aKkxp45agDiEzN"
+					]
+				},
+				"description": "Given a wallet address, return an array of stars linked to that wallet"
+			},
+			"response": []
+		}
+	],
+	"protocolProfileBehavior": {}
+}
