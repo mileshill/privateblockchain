@@ -50,7 +50,7 @@ class Block {
                 if(calculatedBlockHash === currentHash){
                     resolve(true)
                 }
-                reject(false)
+                resolve(false)
                 // Returning the Block is valid
             }catch (e) {
                reject(e)

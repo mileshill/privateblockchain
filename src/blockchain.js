@@ -227,7 +227,7 @@ class Blockchain {
                 })
                 if (height > 0) {
                     // Validate hash link between blocks
-                    if (!block.previousBlockHash === this.chain[height - 1].hash) {
+                    if (block.previousBlockHash !== this.chain[height - 1].hash) {
                         errorLog.push({
                             prevBlock: this.chain[height - 1],
                             currBlock: block,
